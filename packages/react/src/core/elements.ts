@@ -8,7 +8,8 @@ import { Fragment, TEXT_ELEMENT } from "./constants";
  * null, undefined, boolean, 배열, 원시 타입 등을 처리하여 일관된 VNode 구조를 보장합니다.
  */
 export const normalizeNode = (node: VNode): VNode | null => {
-  // 여기를 구현하세요.
+  if (typeof node === "string" || typeof node === "number") return createTextElement(node);
+  if (typeof node === "object" && node !== null) return node;
   return null;
 };
 
@@ -16,8 +17,7 @@ export const normalizeNode = (node: VNode): VNode | null => {
  * 텍스트 노드를 위한 VNode를 생성합니다.
  */
 const createTextElement = (node: VNode): VNode => {
-  // 여기를 구현하세요.
-  return {} as VNode;
+  return { type: TEXT_ELEMENT, key: null, props: { children: [], nodeValue: node.toString() } } as VNode;
 };
 
 /**
@@ -29,7 +29,18 @@ export const createElement = (
   originProps?: Record<string, any> | null,
   ...rawChildren: any[]
 ) => {
-  // 여기를 구현하세요.
+  const { key, ...resetProps } = originProps || {};
+  const children = rawChildren.flat(Infinity).map(normalizeNode).filter(isEmptyValue);
+  const isChildren = children.length > 0;
+
+  return {
+    type,
+    key: key || null,
+    props: {
+      ...resetProps,
+      ...(isChildren ? { children } : {}),
+    },
+  };
 };
 
 /**
