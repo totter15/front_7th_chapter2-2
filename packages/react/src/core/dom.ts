@@ -7,7 +7,37 @@ import { Instance } from "./types";
  * 이벤트 핸들러, 스타일, className 등 다양한 속성을 처리해야 합니다.
  */
 export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void => {
-  // 여기를 구현하세요.
+  Object.keys(props).forEach((key) => {
+    const value = props[key];
+
+    // 이벤트 핸들러 처리
+    if (key.startsWith("on") && typeof value === "function") {
+      const eventName = key.slice(2).toLowerCase();
+      (dom as HTMLElement).addEventListener(eventName, value as EventListener);
+    }
+
+    // 스타일 객체 처리
+    if (key === "style" && typeof value === "object") {
+      Object.assign((dom as HTMLElement).style, value);
+    }
+
+    // className 속성 처리
+    if (key === "className") {
+      (dom as HTMLElement).setAttribute("class", value as string);
+    }
+
+    // 일반 HTML 속성은 setAttribute로 설정
+    // 단, boolean 값은 속성의 존재 여부로 처리
+    if (typeof value === "boolean") {
+      if (value) {
+        (dom as HTMLElement).setAttribute(key, "");
+      } else {
+        (dom as HTMLElement).removeAttribute(key);
+      }
+    } else {
+      (dom as HTMLElement).setAttribute(key, String(value));
+    }
+  });
 };
 
 /**
@@ -19,7 +49,12 @@ export const updateDomProps = (
   prevProps: Record<string, any> = {},
   nextProps: Record<string, any> = {},
 ): void => {
-  // 여기를 구현하세요.
+  Object.keys(nextProps).forEach((key) => {
+    const value = nextProps[key];
+    if (prevProps[key] !== value) {
+      setDomProps(dom, { [key]: value });
+    }
+  });
 };
 
 /**
@@ -27,24 +62,21 @@ export const updateDomProps = (
  * Fragment나 컴포넌트 인스턴스는 여러 개의 DOM 노드를 가질 수 있습니다.
  */
 export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] => {
-  // 여기를 구현하세요.
-  return [];
+  return instance?.children.map((child) => child?.dom as HTMLElement | Text) ?? [];
 };
 
 /**
  * 주어진 인스턴스에서 첫 번째 실제 DOM 노드를 찾습니다.
  */
 export const getFirstDom = (instance: Instance | null): HTMLElement | Text | null => {
-  // 여기를 구현하세요.
-  return null;
+  return instance?.dom as HTMLElement | Text | null;
 };
 
 /**
  * 자식 인스턴스들로부터 첫 번째 실제 DOM 노드를 찾습니다.
  */
 export const getFirstDomFromChildren = (children: (Instance | null)[]): HTMLElement | Text | null => {
-  // 여기를 구현하세요.
-  return null;
+  return children.find((child) => child?.dom) as HTMLElement | Text | null;
 };
 
 /**
@@ -56,7 +88,7 @@ export const insertInstance = (
   instance: Instance | null,
   anchor: HTMLElement | Text | null = null,
 ): void => {
-  // 여기를 구현하세요.
+  parentDom.insertBefore(instance?.dom as Node, anchor);
 };
 
 /**
@@ -64,4 +96,7 @@ export const insertInstance = (
  */
 export const removeInstance = (parentDom: HTMLElement, instance: Instance | null): void => {
   // 여기를 구현하세요.
+  if (instance) {
+    parentDom.removeChild(instance.dom as Node);
+  }
 };
