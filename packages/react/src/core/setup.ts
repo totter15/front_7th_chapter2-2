@@ -3,66 +3,6 @@ import { VNode } from "./types";
 import { removeInstance, setDomProps } from "./dom";
 import { cleanupUnusedHooks } from "./hooks";
 import { render } from "./render";
-import { TEXT_ELEMENT, Fragment } from "./constants";
-
-const createDome = (vNode: VNode) => {
-  let node: HTMLElement | Text | DocumentFragment | null = null;
-  const { children, ...restProps } = vNode.props;
-
-  // 노드 생성
-  // 텍스트 노드 처리
-  if (vNode.type === TEXT_ELEMENT) {
-    node = document.createTextNode(vNode.props.nodeValue as string);
-    return node;
-  }
-
-  // 함수 컴포넌트 처리
-  if (typeof vNode.type === "function") {
-    const renderedVNode = vNode.type(vNode.props);
-    // null을 반환할 수 있으므로 체크합니다
-    if (renderedVNode === null) {
-      return null;
-    }
-    // 반환된 VNode를 재귀적으로 DOM으로 변환합니다
-    return createDome(renderedVNode);
-  }
-
-  // Fragment 처리
-  if (vNode.type === Fragment) {
-    node = document.createDocumentFragment();
-
-    // 자식 노드 추가
-    if (children && children.length > 0) {
-      children.forEach((c) => {
-        const child = createDome(c);
-        if (child) {
-          node?.appendChild(child);
-        }
-      });
-    }
-    return node;
-  }
-
-  // HTML 요소 처리
-  if (typeof vNode.type === "string") {
-    node = document.createElement(vNode.type as string);
-
-    // 자식 노드 추가
-    if (children && children.length > 0) {
-      children.forEach((c) => {
-        const child = createDome(c);
-        if (child) {
-          node?.appendChild(child);
-        }
-      });
-    }
-
-    // 속성 추가
-    setDomProps(node as HTMLElement, restProps);
-
-    return node;
-  }
-};
 
 /**
  * Mini-React 애플리케이션의 루트를 설정하고 첫 렌더링을 시작합니다.
@@ -77,12 +17,19 @@ export const setup = (rootNode: VNode | null, container: HTMLElement): void => {
   if (rootNode === null) throw new Error("Root node is required");
 
   // 2. 이전 렌더링 내용을 정리하고 컨테이너를 비웁니다.
-  if (container.firstChild) {
-    container.removeChild(container.firstChild as Node);
+  if (context.root.instance) {
+    removeInstance(container, context.root.instance);
   }
+  // 컨테이너를 완전히 비웁니다 (removeInstance로 제거되지 않은 노드들)
+  while (container.firstChild) {
+    container.removeChild(container.firstChild);
+  }
+  cleanupUnusedHooks();
+
   // 3. 루트 컨텍스트와 훅 컨텍스트를 리셋합니다.
+  context.root.reset({ container, node: rootNode });
+  context.hooks.clear();
 
   // 4. 첫 렌더링을 실행합니다.
-  const node = createDome(rootNode);
-  if (node) container.appendChild(node);
+  render();
 };

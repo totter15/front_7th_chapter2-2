@@ -9,10 +9,24 @@ import { withEnqueue } from "../utils";
  * `enqueueRender`에 의해 스케줄링되어 호출됩니다.
  */
 export const render = (): void => {
-  // 여기를 구현하세요.
   // 1. 훅 컨텍스트를 초기화합니다.
+  context.hooks.clear();
+
   // 2. reconcile 함수를 호출하여 루트 노드를 재조정합니다.
-  // 3. 사용되지 않은 훅들을 정리(cleanupUnusedHooks)합니다.
+  // 루트 경로는 "0"을 사용합니다 (componentStack이 비어있으므로 currentPath 사용 불가)
+  const updatedInstance = reconcile(
+    context.root.container as HTMLElement,
+    context.root.instance,
+    context.root.node,
+    "0", // 루트 경로
+  );
+
+  // 3. 반환된 인스턴스를 context.root에 저장합니다.
+  // container와 node는 변경하지 않습니다 (이미 setup에서 설정됨)
+  context.root.instance = updatedInstance;
+
+  // 4. 사용되지 않은 훅들을 정리(cleanupUnusedHooks)합니다.
+  cleanupUnusedHooks();
 };
 
 /**

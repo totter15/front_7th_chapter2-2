@@ -20,9 +20,9 @@ export const withEnqueue = (fn: AnyFunction) => {
     if (scheduled) return;
     scheduled = true;
 
-    queueMicrotask(() => {
-      scheduled = false;
+    enqueue(() => {
       fn();
+      scheduled = false;
     });
   };
 };
