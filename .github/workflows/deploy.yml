@@ -1,6 +1,6 @@
 name: Deploy to GitHub Pages
 
-on: 
+on:
   push:
     branches:
       - main
@@ -23,7 +23,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-	        version: latest
+          version: latest
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -47,4 +47,4 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4 
+        uses: actions/deploy-pages@v4
