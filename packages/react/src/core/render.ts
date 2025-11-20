@@ -2,11 +2,51 @@ import { context } from "./context";
 import { reconcile } from "./reconciler";
 import { cleanupUnusedHooks } from "./hooks";
 import { withEnqueue } from "../utils";
+import { HookTypes } from "./constants";
+import type { EffectHook } from "./types";
 
 /**
  * 루트 컴포넌트의 렌더링을 수행하는 함수입니다.
  * `enqueueRender`에 의해 스케줄링되어 호출됩니다.
  */
+/**
+ * 예약된 이펙트들을 실행합니다.
+ * 렌더링이 끝난 후 비동기로 실행됩니다.
+ */
+const executeEffects = (): void => {
+  const effectsToRun = [...context.effects.queue];
+  context.effects.queue = [];
+
+  effectsToRun.forEach(({ path, cursor, effect }) => {
+    // path에 대한 훅 배열 가져오기
+    const hooks = context.hooks.state.get(path);
+    if (!hooks) return;
+
+    // 현재 커서에 해당하는 effect hook 가져오기
+    const hook = hooks[cursor] as EffectHook | undefined;
+    if (!hook || hook.kind !== HookTypes.EFFECT) return;
+
+    // 이전 클린업 함수 실행
+    if (hook.cleanup) {
+      console.log("cleanup start");
+      hook.cleanup();
+    }
+
+    // 이펙트 실행
+    // return 되는건 cleanup 함수
+    const cleanup = effect();
+
+    // 클린업 함수 저장
+    const newHooks = [...hooks];
+    const updatedHook: EffectHook = {
+      ...hook,
+      cleanup: cleanup || null,
+    };
+    newHooks[cursor] = updatedHook;
+    context.hooks.state.set(path, newHooks);
+  });
+};
+
 export const render = (): void => {
   // 1. 훅 컨텍스트를 초기화합니다.
   context.hooks.cursor.clear();
@@ -20,8 +60,21 @@ export const render = (): void => {
     context.root.node,
     "0", // 루트 경로
   );
-  // 3. 사용되지 않은 훅들을 정리(cleanupUnusedHooks)합니다.
-  cleanupUnusedHooks();
+
+  // visited를 보존하기 위해 복사
+  const visitedPaths = new Set(context.hooks.visited);
+
+  // 3. 예약된 이펙트들을 실행합니다 (렌더링 후 비동기)
+  if (context.effects.queue.length > 0) {
+    queueMicrotask(() => {
+      executeEffects();
+      // visited를 파라미터로 전달하여 cleanupUnusedHooks가 언마운트된 컴포넌트를 찾을 수 있도록 함
+      cleanupUnusedHooks(visitedPaths);
+    });
+  } else {
+    // 이펙트가 없으면 바로 정리
+    cleanupUnusedHooks();
+  }
 };
 
 /**

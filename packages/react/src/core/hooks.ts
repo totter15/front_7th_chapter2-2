@@ -1,4 +1,4 @@
-import { shallowEquals, withEnqueue } from "../utils";
+import { shallowEquals } from "../utils";
 import { context } from "./context";
 import { EffectHook } from "./types";
 import { enqueueRender } from "./render";
@@ -7,16 +7,30 @@ import { HookTypes } from "./constants";
 /**
  * 사용되지 않는 컴포넌트의 훅 상태와 이펙트 클린업 함수를 정리합니다.
  */
-export const cleanupUnusedHooks = () => {
+export const cleanupUnusedHooks = (visitedPaths?: Set<string>) => {
   // state에 저장된 모든 경로 가져오기
   const allPaths = Array.from(context.hooks.state.keys());
+  const visited = visitedPaths || context.hooks.visited;
 
   // 이번 렌더링에서 방문하지 않은 경로는 언마운트된 컴포넌트
   for (const path of allPaths) {
-    if (!context.hooks.visited.has(path)) {
+    if (!visited.has(path)) {
+      // 언마운트된 컴포넌트의 모든 이펙트 클린업 함수 실행
+      const hooks = context.hooks.state.get(path);
+      if (hooks) {
+        hooks.forEach((hook) => {
+          if (hook && typeof hook === "object" && "kind" in hook && hook.kind === HookTypes.EFFECT) {
+            const effectHook = hook as EffectHook;
+            if (effectHook.cleanup) {
+              effectHook.cleanup();
+            }
+          }
+        });
+      }
+
       // 해당 경로의 state 삭제
       context.hooks.state.delete(path);
-      // cursor도 삭제 (선택적)
+      // cursor도 삭제
       context.hooks.cursor.delete(path);
     }
   }
@@ -81,9 +95,61 @@ export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((
  * @param deps - 의존성 배열. 이 값들이 변경될 때만 이펙트가 다시 실행됩니다.
  */
 export const useEffect = (effect: () => (() => void) | void, deps?: unknown[]): void => {
-  // 여기를 구현하세요.
+  const currentCursor = context.hooks.currentCursor;
+  const currentHooks = context.hooks.currentHooks;
+  const currentPath = context.hooks.currentPath;
+
   // 1. 이전 훅의 의존성 배열과 현재 의존성 배열을 비교(shallowEquals)합니다.
+  const isFirstRender = currentCursor >= currentHooks.length;
+  let prevDeps: unknown[] | null = null;
+
+  if (!isFirstRender) {
+    // 이전 hook 배열
+    const prevHook = currentHooks[currentCursor] as EffectHook | undefined;
+    // 이전 hook 배열이 존재하고 이게 effect hook이면 이전 deps저장
+    if (prevHook && prevHook.kind === HookTypes.EFFECT) {
+      prevDeps = prevHook.deps;
+    }
+  }
+
+  // 의존성 배열 비교 (첫 렌더링이거나 의존성이 변경된 경우 실행)
+  // 첫 렌더링이거나 이전 deps와 현재 deps가 다르면 실행
+  const depsChanged = isFirstRender || !shallowEquals(prevDeps, deps);
+
   // 2. 의존성이 변경되었거나 첫 렌더링일 경우, 이펙트 실행을 예약합니다.
-  // 3. 이펙트 실행 전, 이전 클린업 함수가 있다면 먼저 실행합니다.
-  // 4. 예약된 이펙트는 렌더링이 끝난 후 비동기로 실행됩니다.
+  if (depsChanged) {
+    context.effects.queue.push({
+      path: currentPath,
+      cursor: currentCursor,
+      effect,
+    });
+  }
+
+  // 3. 이펙트 훅 상태 저장 (의존성, effect 함수, 클린업은 나중에 설정)
+  const effectHook: EffectHook = {
+    kind: HookTypes.EFFECT,
+    deps: deps ?? null,
+    cleanup: null,
+    effect,
+  };
+
+  // 이전 클린업 함수가 있으면 저장 (실행은 이펙트 실행 시점에)
+  if (!isFirstRender) {
+    const prevHook = currentHooks[currentCursor] as EffectHook | undefined;
+    if (prevHook && prevHook.kind === HookTypes.EFFECT && prevHook.cleanup) {
+      effectHook.cleanup = prevHook.cleanup;
+    }
+  }
+
+  // 상태 업데이트
+  if (isFirstRender) {
+    context.hooks.state.set(currentPath, [...currentHooks, effectHook]);
+  } else {
+    const newHooks = [...currentHooks];
+    newHooks[currentCursor] = effectHook;
+    context.hooks.state.set(currentPath, newHooks);
+  }
+
+  // 4. 훅 커서 증가
+  context.hooks.cursor.set(currentPath, currentCursor + 1);
 };
