@@ -54,6 +54,9 @@ export const createChildPath = (
   nodeType?: string | symbol | React.ComponentType,
   siblings?: VNode[],
 ): string => {
-  // 여기를 구현하세요.
-  return "";
+  // key가 있으면 key 기반 경로, 없으면 index 기반 경로 생성
+  if (key !== null) {
+    return `${parentPath}.k${key}`;
+  }
+  return `${parentPath}.c${index}`;
 };

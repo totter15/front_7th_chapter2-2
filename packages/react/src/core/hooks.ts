@@ -19,13 +19,41 @@ export const cleanupUnusedHooks = () => {
 export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((prev: T) => T)) => void] => {
   // 여기를 구현하세요.
   // 1. 현재 컴포넌트의 훅 커서와 상태 배열을 가져옵니다.
+  // 실행중인 hook의 index
+  // hook 상태 배열
+  const currentCursor = context.hooks.currentCursor;
+  const currentHooks = context.hooks.currentHooks;
+  const currentPath = context.hooks.currentPath;
+
   // 2. 첫 렌더링이라면 초기값으로 상태를 설정합니다.
+  const isFirstRender = currentCursor >= currentHooks.length;
+
+  if (isFirstRender) {
+    context.hooks.state.set(currentPath, [initialValue]);
+  }
+
   // 3. 상태 변경 함수(setter)를 생성합니다.
   //    - 새 값이 이전 값과 같으면(Object.is) 재렌더링을 건너뜁니다.
   //    - 값이 다르면 상태를 업데이트하고 재렌더링을 예약(enqueueRender)합니다.
   // 4. 훅 커서를 증가시키고 [상태, setter]를 반환합니다.
-  const setState = (nextValue: T | ((prev: T) => T)) => {};
-  return [initialValue as T, setState];
+  const setState = (nextValue: T | ((prev: T) => T)) => {
+    const prevValue = currentHooks[currentCursor];
+
+    // 함수형 업데이트 처리
+    const newValue = typeof nextValue === "function" ? (nextValue as (prev: T) => T)(prevValue) : nextValue;
+    if (JSON.stringify(prevValue) === JSON.stringify(newValue)) return;
+
+    const newState = [...currentHooks];
+    newState[currentCursor] = newValue;
+
+    context.hooks.state.set(currentPath, newState);
+
+    enqueueRender();
+  };
+
+  const state = context.hooks.state.get(currentPath)?.[currentCursor];
+  context.hooks.cursor.set(currentPath, currentCursor + 1);
+  return [state as T, setState];
 };
 
 /**

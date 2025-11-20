@@ -27,13 +27,13 @@ export const reconcile = (
   node: VNode | null,
   path: string,
 ): Instance | null => {
-  console.log({ parentDom, instance, node, path });
-
+  context.hooks.componentStack.push(path);
   // 1. 새 노드가 null이면 기존 인스턴스를 제거합니다. (unmount)
   if (node === null) {
     if (instance) {
       removeInstance(parentDom, instance);
     }
+
     return null;
   }
 
@@ -71,7 +71,6 @@ export const reconcile = (
     // 텍스트 노드
     if (kind === NodeTypes.TEXT) {
       const dom = document.createTextNode(node.props.nodeValue as string);
-      console.log({ dom });
       parentDom.appendChild(dom);
 
       return {
