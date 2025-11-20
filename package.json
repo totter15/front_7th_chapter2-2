@@ -12,7 +12,7 @@
     "build": "pnpm run -r build",
     "lint:fix": "eslint --fix",
     "prettier:write": "prettier --write ./packages/*/src",
-    "preview": "vite preview",
+    "preview": "pnpm -F @hanghae-plus/shopping preview",
     "test": "pnpm -F @hanghae-plus/react test",
     "test:basic": "pnpm -F @hanghae-plus/react test:basic",
     "test:advanced": "pnpm -F @hanghae-plus/react test:advanced",
