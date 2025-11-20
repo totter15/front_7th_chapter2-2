@@ -8,7 +8,18 @@ import { HookTypes } from "./constants";
  * 사용되지 않는 컴포넌트의 훅 상태와 이펙트 클린업 함수를 정리합니다.
  */
 export const cleanupUnusedHooks = () => {
-  // 여기를 구현하세요.
+  // state에 저장된 모든 경로 가져오기
+  const allPaths = Array.from(context.hooks.state.keys());
+
+  // 이번 렌더링에서 방문하지 않은 경로는 언마운트된 컴포넌트
+  for (const path of allPaths) {
+    if (!context.hooks.visited.has(path)) {
+      // 해당 경로의 state 삭제
+      context.hooks.state.delete(path);
+      // cursor도 삭제 (선택적)
+      context.hooks.cursor.delete(path);
+    }
+  }
 };
 
 /**
@@ -18,6 +29,8 @@ export const cleanupUnusedHooks = () => {
  */
 export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((prev: T) => T)) => void] => {
   // 여기를 구현하세요.
+
+  // 컴포넌트 외부에서 호출시
   // 1. 현재 컴포넌트의 훅 커서와 상태 배열을 가져옵니다.
   // 실행중인 hook의 index
   // hook 상태 배열
@@ -29,7 +42,9 @@ export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((
   const isFirstRender = currentCursor >= currentHooks.length;
 
   if (isFirstRender) {
-    context.hooks.state.set(currentPath, [initialValue]);
+    // initialValue가 함수면 실행, 아니면 그대로 사용
+    const value = typeof initialValue === "function" ? (initialValue as () => T)() : initialValue;
+    context.hooks.state.set(currentPath, [...currentHooks, value]);
   }
 
   // 3. 상태 변경 함수(setter)를 생성합니다.
@@ -37,17 +52,21 @@ export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((
   //    - 값이 다르면 상태를 업데이트하고 재렌더링을 예약(enqueueRender)합니다.
   // 4. 훅 커서를 증가시키고 [상태, setter]를 반환합니다.
   const setState = (nextValue: T | ((prev: T) => T)) => {
-    const prevValue = currentHooks[currentCursor];
+    const hooks = context.hooks.state.get(currentPath) || [];
+    const prevValue = hooks[currentCursor];
 
     // 함수형 업데이트 처리
     const newValue = typeof nextValue === "function" ? (nextValue as (prev: T) => T)(prevValue) : nextValue;
-    if (JSON.stringify(prevValue) === JSON.stringify(newValue)) return;
 
-    const newState = [...currentHooks];
+    // Object.is로 값 비교 (React와 동일)
+    if (Object.is(prevValue, newValue)) {
+      return;
+    }
+
+    const newState = [...hooks];
     newState[currentCursor] = newValue;
 
     context.hooks.state.set(currentPath, newState);
-
     enqueueRender();
   };
 

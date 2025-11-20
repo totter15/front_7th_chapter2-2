@@ -44,8 +44,22 @@ export const createElement = (
 };
 
 /**
- * 부모 경로와 자식의 key/index를 기반으로 고유한 경로를 생성합니다.
+ * 타입을 문자열로 변환합니다.
+ */
+const getTypeString = (type: string | symbol | React.ComponentType | undefined): string => {
+  if (!type) return "unknown";
+  if (typeof type === "string") return type;
+  if (typeof type === "symbol") return type.toString();
+  if (typeof type === "function") {
+    return (type as any).name || (type as any).displayName || "Anonymous";
+  }
+  return String(type);
+};
+
+/**
+ * 부모 경로와 자식의 key/index/type을 기반으로 고유한 경로를 생성합니다.
  * 이는 훅의 상태를 유지하고 Reconciliation에서 컴포넌트를 식별하는 데 사용됩니다.
+ * key가 없을 때는 타입 정보를 포함하여 같은 타입의 컴포넌트가 항상 같은 경로를 유지하도록 합니다.
  */
 export const createChildPath = (
   parentPath: string,
@@ -54,9 +68,16 @@ export const createChildPath = (
   nodeType?: string | symbol | React.ComponentType,
   siblings?: VNode[],
 ): string => {
-  // key가 있으면 key 기반 경로, 없으면 index 기반 경로 생성
+  // key가 있으면 key 기반 경로
   if (key !== null) {
     return `${parentPath}.k${key}`;
   }
-  return `${parentPath}.c${index}`;
+
+  // key가 없으면 타입 정보를 포함한 경로 생성
+  // 같은 타입의 컴포넌트는 같은 타입 식별자를 가지므로 경로가 유지됨
+  const typeStr = getTypeString(nodeType);
+  // 타입 이름에서 특수문자 제거 (경로에 사용 가능한 문자만 사용)
+  const sanitizedType = typeStr.replace(/[^a-zA-Z0-9_$]/g, "_");
+
+  return `${parentPath}.c${index}.t${sanitizedType}`;
 };

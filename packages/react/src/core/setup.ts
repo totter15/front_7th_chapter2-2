@@ -1,6 +1,6 @@
 import { context } from "./context";
 import { VNode } from "./types";
-import { removeInstance, setDomProps } from "./dom";
+import { removeInstance } from "./dom";
 import { cleanupUnusedHooks } from "./hooks";
 import { render } from "./render";
 
@@ -11,7 +11,6 @@ import { render } from "./render";
  * @param container - VNode가 렌더링될 DOM 컨테이너
  */
 export const setup = (rootNode: VNode | null, container: HTMLElement): void => {
-  // 여기를 구현하세요.
   // 1. 컨테이너 유효성을 검사합니다.
   if (!container) throw new Error("Container is required");
   if (rootNode === null) throw new Error("Root node is required");

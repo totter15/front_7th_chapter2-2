@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { createElement, Fragment, setup, useEffect, useState } from "../core";
 import { TEXT_ELEMENT } from "../core/constants";
+import { context } from "../core/context";
 
 const flushMicrotasks = async () => await Promise.resolve();
 
@@ -692,6 +693,7 @@ describe("Chapter 2-2 기본과제: MiniReact", () => {
           initializerCalls += 1;
           return 1;
         });
+        console.log({ value });
         setValue = update;
         return <div>{value}</div>;
       }
@@ -704,6 +706,8 @@ describe("Chapter 2-2 기본과제: MiniReact", () => {
 
       setValue!(5);
       await flushMicrotasks();
+
+      console.log(context.hooks.state);
 
       div = container.firstElementChild as HTMLElement;
       expect(initializerCalls).toBe(1);

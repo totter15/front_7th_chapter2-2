@@ -1,5 +1,4 @@
 import { context } from "./context";
-import { getDomNodes, insertInstance } from "./dom";
 import { reconcile } from "./reconciler";
 import { cleanupUnusedHooks } from "./hooks";
 import { withEnqueue } from "../utils";
@@ -12,6 +11,7 @@ export const render = (): void => {
   // 1. 훅 컨텍스트를 초기화합니다.
   context.hooks.cursor.clear();
   context.hooks.visited.clear();
+  context.hooks.componentStack = [];
 
   // 2. reconcile 함수를 호출하여 루트 노드를 재조정합니다.
   context.root.instance = reconcile(

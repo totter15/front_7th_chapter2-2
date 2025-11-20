@@ -10,6 +10,8 @@ import { TEXT_ELEMENT, Fragment } from "./constants";
 export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void => {
   Object.keys(props).forEach((key) => {
     if (key === "children") return;
+    if (dom.nodeType === Node.TEXT_NODE) return;
+    if (!dom) return;
 
     const value = props[key];
 
@@ -40,9 +42,10 @@ export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void 
       } else {
         (dom as HTMLElement).removeAttribute(key);
       }
-    } else {
-      (dom as HTMLElement).setAttribute(key, String(value));
+      return;
     }
+
+    (dom as HTMLElement)?.setAttribute(key, String(value));
   });
 };
 
@@ -55,12 +58,46 @@ export const updateDomProps = (
   prevProps: Record<string, any> = {},
   nextProps: Record<string, any> = {},
 ): void => {
-  Object.keys(nextProps).forEach((key) => {
-    const value = nextProps[key];
-    if (prevProps[key] !== value) {
-      setDomProps(dom, { [key]: value });
+  // 이벤트 핸들러 처리: 변경되거나 제거된 이벤트 핸들러 제거
+  Object.keys(prevProps).forEach((key) => {
+    if (key === "children") return;
+
+    const prevValue = prevProps[key];
+    const nextValue = nextProps[key];
+
+    // 이벤트 핸들러인 경우
+    if (key.startsWith("on") && typeof prevValue === "function") {
+      const eventName = key.slice(2).toLowerCase();
+
+      // 이벤트 핸들러가 제거되었거나 변경된 경우
+      if (nextValue === undefined || nextValue !== prevValue) {
+        dom.removeEventListener(eventName, prevValue as EventListener);
+      }
     }
   });
+
+  // nextProps에 없는 일반 속성 제거
+  Object.keys(prevProps).forEach((key) => {
+    if (key === "children") return;
+    if (key.startsWith("on")) return; // 이벤트 핸들러는 위에서 처리됨
+
+    if (nextProps[key] === undefined) {
+      // className은 "class" 속성으로 제거
+      if (key === "className") {
+        dom.removeAttribute("class");
+      } else if (key === "style" && typeof prevProps[key] === "object") {
+        // 스타일 객체의 경우 모든 속성 제거
+        Object.keys(prevProps[key] || {}).forEach((styleKey) => {
+          (dom as HTMLElement).style.removeProperty(styleKey);
+        });
+      } else {
+        dom.removeAttribute(key);
+      }
+    }
+  });
+
+  // 새 속성 설정 (변경된 속성 포함)
+  setDomProps(dom, nextProps);
 };
 
 /**
