@@ -8,5 +8,8 @@ import type { FunctionComponent } from "../core";
 export function deepMemo<P extends object>(Component: FunctionComponent<P>) {
   // 여기를 구현하세요.
   // memo HOC와 deepEquals 함수를 사용해야 합니다.
-  return memo(Component, deepEquals);
+
+  const MemoizedComponent = memo(Component, deepEquals);
+
+  return MemoizedComponent;
 }
