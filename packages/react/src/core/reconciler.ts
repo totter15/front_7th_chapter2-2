@@ -170,7 +170,7 @@ export const reconcile = (
       // Fragment
       if (kind === NodeTypes.FRAGMENT) {
         const childInstances: (Instance | null)[] = [];
-        const children = node.props.children || [];
+        const children = node.props?.children || [];
 
         children.forEach((child, index) => {
           const childPath = createChildPath(path, child.key, index, child.type, children);
@@ -203,7 +203,7 @@ export const reconcile = (
       };
 
       // 자식들을 재귀적으로 마운트
-      const children = node.props.children || [];
+      const children = node.props?.children || [];
       const childInstances: (Instance | null)[] = [];
 
       children.forEach((child, index) => {
@@ -239,7 +239,7 @@ export const reconcile = (
 
       // 자식 재조정
       const oldChildren = instance.children || [];
-      const newChildren = node.props.children || [];
+      const newChildren = node.props?.children || [];
       const updatedChildren: (Instance | null)[] = [];
       const usedOldIndices = new Set<number>();
 
@@ -362,7 +362,7 @@ export const reconcile = (
     // Fragment: 자식만 재조정
     if (instance.kind === NodeTypes.FRAGMENT) {
       const oldChildren = instance.children || [];
-      const newChildren = node.props.children || [];
+      const newChildren = node.props?.children || [];
       const updatedChildren: (Instance | null)[] = [];
       const usedOldIndices = new Set<number>();
 

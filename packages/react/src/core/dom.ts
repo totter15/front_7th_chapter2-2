@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NodeType, NodeTypes } from "./constants";
-import { Instance, VNode } from "./types";
-import { TEXT_ELEMENT, Fragment } from "./constants";
+import { NodeTypes } from "./constants";
+import { Instance } from "./types";
 
 /**
  * DOM 요소에 속성(props)을 설정합니다.
  * 이벤트 핸들러, 스타일, className 등 다양한 속성을 처리해야 합니다.
  */
 export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void => {
+  if (!props || props === null) return;
   Object.keys(props).forEach((key) => {
     if (key === "children") return;
     if (dom.nodeType === Node.TEXT_NODE) return;
