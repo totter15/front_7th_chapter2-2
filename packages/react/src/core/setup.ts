@@ -1,7 +1,6 @@
 import { context } from "./context";
 import { VNode } from "./types";
 import { removeInstance } from "./dom";
-import { cleanupUnusedHooks } from "./hooks";
 import { render } from "./render";
 
 /**
@@ -23,7 +22,6 @@ export const setup = (rootNode: VNode | null, container: HTMLElement): void => {
   while (container.firstChild) {
     container.removeChild(container.firstChild);
   }
-  cleanupUnusedHooks();
 
   // 3. 루트 컨텍스트와 훅 컨텍스트를 리셋합니다.
   context.root.reset({ container, node: rootNode });

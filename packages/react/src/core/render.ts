@@ -27,13 +27,9 @@ const executeEffects = (): void => {
     if (!hook || hook.kind !== HookTypes.EFFECT) return;
 
     // 이전 클린업 함수 실행
-    if (hook.cleanup) {
-      console.log("cleanup start");
-      hook.cleanup();
-    }
+    if (hook.cleanup) hook.cleanup();
 
-    // 이펙트 실행
-    // return 되는건 cleanup 함수
+    // effect함수 실행후 return 값으로 new cleanup 함수 생성
     const cleanup = effect();
 
     // 클린업 함수 저장
@@ -61,20 +57,10 @@ export const render = (): void => {
     "0", // 루트 경로
   );
 
-  // visited를 보존하기 위해 복사
-  const visitedPaths = new Set(context.hooks.visited);
-
   // 3. 예약된 이펙트들을 실행합니다 (렌더링 후 비동기)
-  if (context.effects.queue.length > 0) {
-    queueMicrotask(() => {
-      executeEffects();
-      // visited를 파라미터로 전달하여 cleanupUnusedHooks가 언마운트된 컴포넌트를 찾을 수 있도록 함
-      cleanupUnusedHooks(visitedPaths);
-    });
-  } else {
-    // 이펙트가 없으면 바로 정리
-    cleanupUnusedHooks();
-  }
+  if (context.effects.queue.length > 0) queueMicrotask(executeEffects);
+
+  cleanupUnusedHooks();
 };
 
 /**
